@@ -548,11 +548,11 @@ if ($result && $result->num_rows > 0) {
                     <li class="nav-item">
                         <a class="nav-link active" href="theatre.php">Theatres</a>
                     </li>
+                    <!-- <li class="nav-item">
+                        <a class="nav-link" href="index.php">Movies</a>
+                    </li> -->
                     <li class="nav-item">
-                        <a class="nav-link" href="movies.php">Movies</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="bookings.php">Bookings</a>
+                        <a class="nav-link" href="my_bookings.php">Bookings</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="contact.php">Contact</a>
@@ -622,7 +622,7 @@ if ($result && $result->num_rows > 0) {
             <div class="row">
                 <div class="col-md-6 mb-4">
                     <label for="cityFilter" class="form-label">City</label>
-                    <select class="form-select" id="cityFilter">
+                    <select class="form-select" id="cityFilter" style="background: #0a0a0a">
                         <option value="all">All Cities</option>
                         <option value="Thoothukudi">Thoothukudi</option>
                         <option value="Thiruchendur">Thiruchendur</option>
@@ -630,11 +630,11 @@ if ($result && $result->num_rows > 0) {
                         <option value="Aathur">Aathur</option>
                     </select>
                 </div>
-                <div class="col-md-6 mb-4">
-                    <label for="searchTheatre" class="form-label">Search</label>
+                <div class="col-md-6 mb-4" >
+                    <label for="searchTheatre" class="form-label" >Search</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control" id="searchTheatre" placeholder="Search theatre or location...">
+                        <input type="text" class="form-control" id="searchTheatre" placeholder="Search theatre or location..." style="color: white">
                     </div>
                 </div>
             </div>
@@ -740,7 +740,7 @@ if ($result && $result->num_rows > 0) {
                                     <a href="seat_bookings.php?theatre_id=' . $row['id'] . '" class="btn btn-theatre btn-book">
                                         <i class="fas fa-ticket-alt me-2"></i> BOOK NOW
                                     </a>
-                                    <a href="directions.php?theatre_id=' . $row['id'] . '" class="btn btn-theatre btn-details">
+                                    <a href="https://www.google.com/maps/search/?api=1&query=Current+Location" class="btn btn-theatre btn-details" target="_blank">
                                         <i class="fas fa-directions me-2"></i> DIRECTIONS
                                     </a>
                                 </div>

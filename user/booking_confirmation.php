@@ -43,6 +43,79 @@ unset($_SESSION['selected_show']);
             align-items: center;
             padding: 20px;
         }
+        /* Ticket Action Box */
+.ticket-action-box {
+    max-width: 340px;
+    margin: 0 auto;
+    padding: 22px;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #0f0f0f, #1a1a1a);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    text-align: center;
+}
+
+/* Print Button */
+.btn-print {
+    background: linear-gradient(135deg, #ffcc00, #ff9f00);
+    color: #000;
+    font-weight: 700;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 18px rgba(255, 170, 0, 0.45);
+}
+
+.btn-print i {
+    font-size: 1.1rem;
+}
+
+.btn-print:hover {
+    background: linear-gradient(135deg, #ffb300, #ffd000);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(255, 200, 0, 0.65);
+}
+
+/* Home Button */
+.btn-home {
+    background: transparent;
+    border: 2px solid #ffcc00;
+    color: #ffcc00;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: block;
+}
+
+.btn-home i {
+    font-size: 1rem;
+}
+
+.btn-home:hover {
+    background: #ffcc00;
+    color: #000;
+    transform: translateY(-2px);
+}
+
+/* Mobile Friendly */
+@media (max-width: 576px) {
+    .ticket-action-box {
+        max-width: 100%;
+        padding: 18px;
+    }
+}
+
+/* Hide buttons while printing */
+@media print {
+    .ticket-action-box {
+        display: none;
+    }
+}
+
 
         .confirmation-container {
             max-width: 800px;
@@ -248,14 +321,18 @@ unset($_SESSION['selected_show']);
                             <img src="<?php echo $paymentData['qr_code']; ?>" alt="QR Code">
                         </div>
                         <p class="small">Scan QR code at entrance</p>
-                        <div class="mt-3">
-                            <button onclick="window.print()" class="btn-download w-100 mb-2">
-                                <i class="fas fa-print me-2"></i> Print Ticket
-                            </button>
-                            <a href="index.php" class="btn-home w-100">
-                                <i class="fas fa-home me-2"></i> Back to Home
-                            </a>
-                        </div>
+                        <div class="ticket-action-box mt-4">
+    <button onclick="window.print()" class="btn btn-print w-100">
+        <i class="fas fa-print me-2"></i>
+        Print Ticket
+    </button>
+
+    <a href="index.php" class="btn btn-home w-100 mt-3">
+        <i class="fas fa-home me-2"></i>
+        Back to Home
+    </a>
+</div>
+
                     </div>
                 </div>
             </div>

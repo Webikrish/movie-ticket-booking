@@ -137,7 +137,7 @@ try {
 </head>
 <body>
     <!-- Header -->
-    <?php include 'header.php'; ?>
+    <?php include 'nav1.php'; ?>
 
     <div class="container py-4">
         <h1 class="mb-4" style="color: var(--accent-gold);">
@@ -230,12 +230,12 @@ try {
                                     </span>
                                 </div>
                             </div>
-                            <div class="col-md-2 text-md-end">
+                            <!-- <div class="col-md-2 text-md-end">
                                 <a href="booking_confirmation.php?id=<?php echo $booking['id']; ?>" 
                                    class="btn btn-sm btn-outline-light">
                                     <i class="fas fa-eye me-1"></i> View
                                 </a>
-                            </div>
+                            </div> -->
                         </div>
                     </div>
                 <?php endforeach; ?>

@@ -1,11 +1,36 @@
 <?php
-// Start the session and include database connection
+// Start session FIRST - before any output
 // session_start();
+
+// Include database connection
+
+require_once 'session_manager.php';
 require_once 'db_connection.php';
+
 
 // Initialize database operations
 $database = new Database();
 $db = $database->getConnection();
+
+// Handle notification submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['notify_email'])) {
+    $movie_id = $_POST['movie_id'];
+    $email = $_POST['notify_email'];
+    
+    // Save notification to database
+    $stmt = $db->prepare("INSERT INTO notifications (movie_id, email) VALUES (?, ?)");
+    $result = $stmt->execute([$movie_id, $email]);
+    
+    if ($result) {
+        $_SESSION['notification_success'] = "Thank you! We'll notify you when tickets are available.";
+    } else {
+        $_SESSION['notification_error'] = "Failed to save notification. Please try again.";
+    }
+    
+    // Redirect to prevent form resubmission
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit();
+}
 
 // Get all data from database
 $slider_images = $database->getSliderImages();
@@ -15,8 +40,8 @@ $genres = $database->getGenres();
 // Handle filter requests
 $filters = [];
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (isset($_GET['search'])) {
-        $filters['search'] = $_GET['search'];
+    if (isset($_GET['search']) && !empty($_GET['search'])) {
+        $filters['search'] = trim($_GET['search']);
     }
     if (isset($_GET['language']) && $_GET['language'] !== 'all') {
         $filters['language'] = $_GET['language'];
@@ -27,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (isset($_GET['rating']) && $_GET['rating'] !== 'all') {
         $filters['rating'] = $_GET['rating'];
     }
-    if (isset($_GET['date'])) {
+    if (isset($_GET['date']) && !empty($_GET['date'])) {
         $filters['date'] = $_GET['date'];
     }
 }
@@ -45,6 +70,13 @@ $hours_info = $database->getContactByType('hours');
 
 // Get featured movies
 $featured_movies = $database->getFeaturedMovies();
+
+// Get notification messages from session
+$notification_success = $_SESSION['notification_success'] ?? null;
+$notification_error = $_SESSION['notification_error'] ?? null;
+
+// Clear session messages after retrieving
+unset($_SESSION['notification_success'], $_SESSION['notification_error']);
 ?>
 
 <!DOCTYPE html>
@@ -61,8 +93,129 @@ $featured_movies = $database->getFeaturedMovies();
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
     
     <style>
-        /* CSS from previous enhanced version remains here */
-        /* ... (all the CSS styles from previous enhanced version) ... */
+        /* Notification Modal Styles */
+        .notification-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .notification-content {
+            background: var(--primary-dark);
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+            border: 2px solid var(--accent-gold);
+        }
+        
+        .notification-content h3 {
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+        }
+        
+        .notification-content .form-control {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            margin-bottom: 1rem;
+        }
+        
+        .notification-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            display: none;
+        }
+        
+        /* Enhanced filter styles */
+        .search-section {
+            background: linear-gradient(135deg, rgba(10, 10, 10, 0.9), rgba(20, 20, 20, 0.9));
+            padding: 2rem;
+            border-radius: 10px;
+            margin-top: -50px;
+            position: relative;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+        
+        .search-section h3 {
+            color: var(--accent-gold);
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5rem;
+        }
+        
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+        
+        .filter-label {
+            color: #fff;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            font-weight: 600;
+        }
+        
+        .form-control, .form-select {
+            background: rgba(0, 0, 0, 0.5) !important;
+            border: 1px solid rgba(255, 215, 0, 0.3) !important;
+            color: white !important;
+            padding: 0.75rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-gold) !important;
+            box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25) !important;
+        }
+        
+        #searchMovie {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: black !important;
+        }
+        
+        #searchMovie::placeholder {
+            color: #666;
+        }
+        
+        #searchMovie:focus {
+            background: white !important;
+        }
+        
+        /* Custom scrollbar for dropdowns */
+        .form-select option {
+            background: var(--primary-dark);
+            color: white;
+            padding: 10px;
+        }
+        
+        /* Date input styling */
+        #filterDate::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        
+        /* Filter button hover effects */
+        #applyFilters:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+        }
     </style>
     <link href="style.css" rel="stylesheet">
     
@@ -75,6 +228,36 @@ $featured_movies = $database->getFeaturedMovies();
 
     <!-- Particle Background -->
     <div class="particles" id="particles"></div>
+
+    <!-- Notification Toast -->
+    <div class="toast-notification alert" id="notificationToast" role="alert">
+        <div class="d-flex">
+            <div class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="hideToast()"></button>
+        </div>
+    </div>
+
+    <!-- Notification Modal -->
+    <div class="notification-modal" id="notificationModal">
+        <div class="notification-content">
+            <h3><i class="fas fa-bell me-2"></i>Get Notified</h3>
+            <p>Enter your email to get notified when tickets are available:</p>
+            <form id="notifyForm" method="POST">
+                <input type="hidden" name="movie_id" id="notifyMovieId">
+                <div class="mb-3">
+                    <input type="email" class="form-control" name="notify_email" id="notifyEmail" placeholder="your@email.com" required>
+                </div>
+                <div class="notification-buttons">
+                    <button type="submit" class="btn btn-hero flex-grow-1">
+                        <i class="fas fa-paper-plane me-2"></i>Notify Me
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeNotificationModal()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Header Section -->
     <?php include "header.php"?>
@@ -127,14 +310,14 @@ $featured_movies = $database->getFeaturedMovies();
                 
                 <form method="GET" action="" id="filterForm">
                     <div class="row">
-                        <div class="col-md-8">
-                            <div class="filter-group">
+                         <!-- <div class="col-md-8">
+                             <div class="filter-group">
                                 <label class="filter-label">Search Movie</label>
-                                <input type="text" class="form-control" name="search" id="searchMovie" style="background: white; color:black"
+                                <input type="text" class="form-control" name="search" id="searchMovie" 
                                        placeholder="Enter movie name, actor, or director..." 
                                        value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
-                            </div>
-                        </div>
+                            </div> 
+                        </div>  -->
                         
                         <div class="col-md-4">
                             <div class="filter-group">
@@ -147,7 +330,7 @@ $featured_movies = $database->getFeaturedMovies();
                         <div class="col-md-3">
                             <div class="filter-group">
                                 <label class="filter-label">Language</label>
-                                <select class="form-select" name="language" id="filterLanguage" style="background: #0a0a0a">
+                                <select class="form-select" name="language" id="filterLanguage">
                                     <option value="all">All Languages</option>
                                     <?php foreach($languages as $language): ?>
                                         <option value="<?php echo $language['id']; ?>" 
@@ -162,7 +345,7 @@ $featured_movies = $database->getFeaturedMovies();
                         <div class="col-md-3">
                             <div class="filter-group">
                                 <label class="filter-label">Genre</label>
-                                <select class="form-select" name="genre" id="filterGenre" style="background: #0a0a0a">
+                                <select class="form-select" name="genre" id="filterGenre">
                                     <option value="all">All Genres</option>
                                     <?php foreach($genres as $genre): ?>
                                         <option value="<?php echo $genre['id']; ?>" 
@@ -177,11 +360,13 @@ $featured_movies = $database->getFeaturedMovies();
                         <div class="col-md-3">
                             <div class="filter-group">
                                 <label class="filter-label">Rating</label>
-                                <select class="form-select" name="rating" id="filterRating" style="background: #0a0a0a">
+                                <select class="form-select" name="rating" id="filterRating">
                                     <option value="all">All Ratings</option>
                                     <option value="5" <?php echo (isset($_GET['rating']) && $_GET['rating'] == '5') ? 'selected' : ''; ?>>5 Stars & Above</option>
                                     <option value="4" <?php echo (isset($_GET['rating']) && $_GET['rating'] == '4') ? 'selected' : ''; ?>>4 Stars & Above</option>
                                     <option value="3" <?php echo (isset($_GET['rating']) && $_GET['rating'] == '3') ? 'selected' : ''; ?>>3 Stars & Above</option>
+                                    <option value="2" <?php echo (isset($_GET['rating']) && $_GET['rating'] == '2') ? 'selected' : ''; ?>>2 Stars & Above</option>
+                                    <option value="1" <?php echo (isset($_GET['rating']) && $_GET['rating'] == '1') ? 'selected' : ''; ?>>1 Star & Above</option>
                                 </select>
                             </div>
                         </div>
@@ -311,7 +496,7 @@ $featured_movies = $database->getFeaturedMovies();
                                     <div class="movie-meta">
                                         <i class="far fa-calendar-alt me-1"></i>Release: <?php echo date('M d, Y', strtotime($movie['release_date'])); ?>
                                     </div>
-                                    <button class="btn btn-notify mt-3" data-id="<?php echo $movie['id']; ?>">
+                                    <button class="btn btn-notify mt-3" data-id="<?php echo $movie['id']; ?>" data-title="<?php echo htmlspecialchars($movie['title']); ?>">
                                         <i class="far fa-bell me-2"></i>Notify Me
                                     </button>
                                 </div>
@@ -363,7 +548,7 @@ $featured_movies = $database->getFeaturedMovies();
             </div>
         </section>
 
-        <?php include "contact.php"?>
+   
     </main>
 
     <!-- Footer (Dynamic from Database) -->
@@ -375,7 +560,6 @@ $featured_movies = $database->getFeaturedMovies();
     <!-- Include additional JavaScript -->
     <script src="js/particles.js"></script>
     <script src="js/animations.js"></script>
-    <script src="js/filters.js"></script>
     
     <script>
         // Function to handle slider button actions
@@ -395,14 +579,51 @@ $featured_movies = $database->getFeaturedMovies();
             }
         }
 
+        // Notification Modal Functions
+        function openNotificationModal(movieId, movieTitle) {
+            document.getElementById('notifyMovieId').value = movieId;
+            document.getElementById('notificationModal').style.display = 'flex';
+            
+            // Update modal content with movie title
+            const modalContent = document.querySelector('.notification-content p');
+            modalContent.innerHTML = `Get notified when tickets for "${movieTitle}" are available:`;
+        }
+
+        function closeNotificationModal() {
+            document.getElementById('notificationModal').style.display = 'none';
+            document.getElementById('notifyForm').reset();
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('notificationToast');
+            const toastBody = toast.querySelector('.toast-body');
+            
+            toastBody.innerHTML = message;
+            toast.className = `toast-notification alert alert-${type} show`;
+            toast.style.display = 'block';
+            
+            // Auto hide after 5 seconds
+            setTimeout(hideToast, 5000);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('notificationToast');
+            toast.style.display = 'none';
+        }
+
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize particles
-            initParticles();
+            if (typeof initParticles === 'function') {
+                initParticles();
+            }
             
-            // Set today's date as default for date filter
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('filterDate').value = today;
+            // Set today's date as default for date filter if not already set
+            const dateInput = document.getElementById('filterDate');
+            if (dateInput && !dateInput.value) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+            }
             
             // Initialize filter functionality
             initFilters();
@@ -412,6 +633,13 @@ $featured_movies = $database->getFeaturedMovies();
             
             // Initialize other animations
             initAnimations();
+            
+            // Show notification success/error message if exists
+            <?php if(isset($notification_success)): ?>
+                showToast('<?php echo addslashes($notification_success); ?>', 'success');
+            <?php elseif(isset($notification_error)): ?>
+                showToast('<?php echo addslashes($notification_error); ?>', 'danger');
+            <?php endif; ?>
         });
 
         // Initialize filter functionality
@@ -419,32 +647,30 @@ $featured_movies = $database->getFeaturedMovies();
             const filterForm = document.getElementById('filterForm');
             const searchInput = document.getElementById('searchMovie');
             
+            if (!filterForm) return;
+            
             // Real-time search with debounce
-            let searchTimeout;
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    if (this.value.length >= 3 || this.value.length === 0) {
-                        filterForm.submit();
-                    }
-                }, 500);
-            });
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        if (this.value.length >= 3 || this.value.length === 0) {
+                            filterForm.submit();
+                        }
+                    }, 500);
+                });
+            }
             
             // Auto-submit on filter change
-            document.getElementById('filterLanguage').addEventListener('change', function() {
-                filterForm.submit();
-            });
-            
-            document.getElementById('filterGenre').addEventListener('change', function() {
-                filterForm.submit();
-            });
-            
-            document.getElementById('filterRating').addEventListener('change', function() {
-                filterForm.submit();
-            });
-            
-            document.getElementById('filterDate').addEventListener('change', function() {
-                filterForm.submit();
+            const filterSelects = ['filterLanguage', 'filterGenre', 'filterRating', 'filterDate'];
+            filterSelects.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', function() {
+                        filterForm.submit();
+                    });
+                }
             });
         }
 
@@ -503,16 +729,20 @@ $featured_movies = $database->getFeaturedMovies();
             // Sticky navbar with enhanced effect
             window.addEventListener('scroll', function() {
                 const navbar = document.querySelector('.navbar');
-                if (window.scrollY > 50) {
-                    navbar.classList.add('scrolled');
-                } else {
-                    navbar.classList.remove('scrolled');
+                if (navbar) {
+                    if (window.scrollY > 50) {
+                        navbar.classList.add('scrolled');
+                    } else {
+                        navbar.classList.remove('scrolled');
+                    }
                 }
                 
                 // Add parallax effect to hero section
                 const heroSection = document.querySelector('.hero-slider');
-                const scrolled = window.pageYOffset;
-                heroSection.style.transform = `translate3d(0, ${scrolled * 0.05}px, 0)`;
+                if (heroSection) {
+                    const scrolled = window.pageYOffset;
+                    heroSection.style.transform = `translate3d(0, ${scrolled * 0.05}px, 0)`;
+                }
             });
             
             // Smooth scroll for anchor links
@@ -533,7 +763,7 @@ $featured_movies = $database->getFeaturedMovies();
                         // Close mobile navbar if open
                         const navbarToggler = document.querySelector('.navbar-toggler');
                         const navbarCollapse = document.querySelector('.navbar-collapse');
-                        if (navbarCollapse.classList.contains('show')) {
+                        if (navbarToggler && navbarCollapse && navbarCollapse.classList.contains('show')) {
                             navbarToggler.click();
                         }
                     }
@@ -547,7 +777,9 @@ $featured_movies = $database->getFeaturedMovies();
                     const movieId = button.getAttribute('data-id');
                     
                     // Store movie ID in session for booking page
-                    sessionStorage.setItem('selectedMovie', movieId);
+                    if (typeof sessionStorage !== 'undefined') {
+                        sessionStorage.setItem('selectedMovie', movieId);
+                    }
                     
                     // Redirect to booking page
                     window.location.href = 'booking.php?id=' + movieId;
@@ -557,33 +789,18 @@ $featured_movies = $database->getFeaturedMovies();
                 if (e.target.classList.contains('btn-notify') || e.target.closest('.btn-notify')) {
                     const button = e.target.classList.contains('btn-notify') ? e.target : e.target.closest('.btn-notify');
                     const movieId = button.getAttribute('data-id');
+                    const movieTitle = button.getAttribute('data-title');
                     
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
-                    button.disabled = true;
-                    
-                    setTimeout(() => {
-                        const email = prompt('Enter your email to get notified when tickets are available:');
-                        if (email) {
-                            button.innerHTML = '<i class="fas fa-bell me-2"></i>Notifications On';
-                            button.classList.remove('btn-notify');
-                            button.classList.add('btn-book');
-                            button.style.background = 'var(--gradient-gold)';
-                            button.style.color = 'var(--primary-dark)';
-                            
-                            // Show success animation
-                            const successMsg = document.createElement('div');
-                            successMsg.className = 'alert alert-success mt-2';
-                            successMsg.innerHTML = `<i class="fas fa-check-circle me-2"></i>We'll notify you at ${email}`;
-                            button.parentElement.appendChild(successMsg);
-                            
-                            setTimeout(() => {
-                                successMsg.remove();
-                            }, 3000);
-                        } else {
-                            button.innerHTML = '<i class="far fa-bell me-2"></i>Notify Me';
-                            button.disabled = false;
-                        }
-                    }, 1000);
+                    // Open notification modal
+                    openNotificationModal(movieId, movieTitle);
+                }
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(e) {
+                const modal = document.getElementById('notificationModal');
+                if (e.target === modal) {
+                    closeNotificationModal();
                 }
             });
         }

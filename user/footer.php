@@ -1,3 +1,50 @@
+ <style>
+/* Footer Bottom */
+.footer-bottom {
+    background: #0b0b0b;
+    padding: 15px 10px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 204, 0, 0.2);
+}
+
+.footer-bottom p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #aaa;
+    font-weight: 500;
+}
+
+/* Brand Highlight */
+.footer-bottom .brand {
+    color: #ffcc00;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+/* Heart Animation */
+.footer-bottom .heart {
+    color: #ff4d4d;
+    display: inline-block;
+    animation: heartbeat 1.5s infinite;
+}
+
+/* Heart Animation */
+@keyframes heartbeat {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.15); }
+    50% { transform: scale(1); }
+    75% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+/* Mobile Friendly */
+@media (max-width: 576px) {
+    .footer-bottom p {
+        font-size: 0.85rem;
+    }
+}
+
+</style>
  <footer class="footer">
         <div class="container">
             <div class="row">
@@ -79,9 +126,13 @@
                 </div>
             </div>
             
-            <div class="copyright">
-                <p>&copy; <?php echo date('Y'); ?> CinemaKrish. All Rights Reserved.</p>
-                <p class="text-gray small">Powered by MovieMagic Systems</p>
-            </div>
+            <div class="footer-bottom">
+    <p>
+        © <?php echo date('Y'); ?> CinemaKrish.  
+        Built with <span class="heart">❤</span> by  
+        <span class="brand">Webikrish Team</span>
+    </p>
+</div>
+
         </div>
     </footer>

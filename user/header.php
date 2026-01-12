@@ -34,16 +34,16 @@
                         <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active' : ''; ?>" href="index.php"style="color:white">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="movie.php" style="color:white">Movies</a>
+                        <a class="nav-link" href="#movies" style="color:white">Movies</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="theatre.php"style="color:white">Theatres</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#offers"style="color:white">Offers</a>
+                        <a class="nav-link" href="about.php"style="color:white">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#contact"style="color:white">Contact</a>
+                        <a class="nav-link" href="contact.php"style="color:white">Contact</a>
                     </li>
                     
                     <?php if(isLoggedIn() && isAdmin()): ?>
@@ -58,7 +58,7 @@
                 </ul>
                 
                 <!-- Location Selector (Desktop) -->
-                <div class="d-none d-lg-flex align-items-center me-4">
+                <!-- <div class="d-none d-lg-flex align-items-center me-4">
                     <i class="fas fa-map-marker-alt text-danger me-2"></i>
                     <select class="form-select form-select-sm" style="background: #0a0a0a; color: white; border: 1px solid #d32f2f;">
                         <option selected>Thoothukudi</option>
@@ -66,7 +66,7 @@
                         <option>Santhakulam</option>
                         <option>Aathur</option>
                     </select>
-                </div>
+                </div> -->
                 
                 <!-- User Authentication Buttons -->
                 <div class="d-flex align-items-center">
@@ -91,10 +91,10 @@
                                     </span>
                                 </li>
                                 <li><hr class="dropdown-divider" style="border-color: #444;"></li>
-                                <li><a class="dropdown-item text-light" href="profile.php" style="background: #1a1a1a;">
+                                <li><a class="dropdown-item text-light" href="my_profile.php" style="background: #1a1a1a;">
                                     <i class="fas fa-user-circle me-2"></i>My Profile
                                 </a></li>
-                                <li><a class="dropdown-item text-light" href="bookings.php" style="background: #1a1a1a;">
+                                <li><a class="dropdown-item text-light" href="my_bookings.php" style="background: #1a1a1a;">
                                     <i class="fas fa-ticket-alt me-2"></i>My Bookings
                                 </a></li>
                                 

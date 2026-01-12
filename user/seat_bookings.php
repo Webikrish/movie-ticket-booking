@@ -949,8 +949,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['select_seats'])) {
                         </div>
                         
                         <div class="summary-item">
-                            <span>Ticket Total:</span>
-                            <span>$<span id="ticketTotal"><?php 
+                            <span>Service Fee</span>
+                            <span><span id="ticketTotal"><?php 
                                 $ticketTotal = 0;
                                 if (!empty($selectedSeats)) {
                                     for ($i = 0; $i < count($selectedSeats); $i++) {
@@ -1014,7 +1014,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['select_seats'])) {
     </div>
 
     <!-- Bootstrap JS -->
-   // Replace the existing JavaScript with this updated version
+   
 
 <script>
     // Global variables

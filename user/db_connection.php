@@ -99,6 +99,7 @@ class Database {
         $stmt->execute($params);
         return $stmt->fetchAll();
     }
+    
 
     public function getComingSoonMovies() {
         $query = "SELECT m.*, l.name as language_name, g.name as genre_name 
