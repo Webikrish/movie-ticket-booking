@@ -50,6 +50,9 @@
                         <li class="nav-item">
                             <a class="nav-link" href="admin.php"style="color:white">Admin Panel</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.php"style="color:white">Dashboard</a>
+                        </li>
                     <?php elseif(isLoggedIn()): ?>
                         <li class="nav-item">
                             <a class="nav-link" href="dashboard.php"style="color:white">Dashboard</a>

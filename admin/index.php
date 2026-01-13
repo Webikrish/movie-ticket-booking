@@ -1,135 +1,146 @@
 <?php
-require_once '../includes/config.php';
-require_once '../includes/functions.php';
+$pageTitle = 'Dashboard - Admin Panel';
+require_once 'header.php';
 
-if(isset($_SESSION['admin_id'])) {
-    header('Location: dashboard.php');
-    exit();
-}
+// Use correct path to db_connection.php
+$database = new Database();
+$db = $database->getConnection();
 
-$error = '';
-
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = sanitize($_POST['username']);
-    $password = $_POST['password'];
-    
-    $auth = new Auth();
-    if($auth->adminLogin($username, $password)) {
-        header('Location: dashboard.php');
-        exit();
-    } else {
-        $error = 'Invalid credentials';
-    }
-}
+// Get statistics
+$userStats = $db->getUserStatistics();
+$movieStats = $db->getMovieStatistics();
+$recentActivities = $db->getRecentActivities(5);
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - <?php echo SITE_NAME; ?></title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .admin-login-container {
-            width: 100%;
-            max-width: 400px;
-            padding: 40px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        
-        .admin-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .admin-header i {
-            font-size: 60px;
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-    </style>
-</head>
-<body>
-    <div class="admin-login-container">
-        <div class="admin-header">
-            <i class="bi bi-shield-lock"></i>
-            <h3>Admin Panel</h3>
-            <p class="text-muted"><?php echo SITE_NAME; ?></p>
-        </div>
-        
-        <?php if($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <?php echo $error; ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <?php endif; ?>
-        
-        <form method="POST" action="">
-            <div class="mb-3">
-                <label for="username" class="form-label">Username or Email</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control" id="username" name="username" required>
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input type="password" class="form-control" id="password" name="password" required>
-                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="bi bi-box-arrow-in-right"></i> Sign In
-                </button>
-            </div>
-            
-            <div class="text-center mt-3">
-                <a href="../user/index.php" class="text-decoration-none">
-                    <i class="bi bi-arrow-left"></i> Back to Site
-                </a>
-            </div>
-        </form>
-    </div>
 
-    <script>
-        // Toggle password visibility
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const passwordInput = document.getElementById('password');
-            const icon = this.querySelector('i');
-            
-            if(passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('bi-eye');
-                icon.classList.add('bi-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('bi-eye-slash');
-                icon.classList.add('bi-eye');
-            }
-        });
-    </script>
+<div class="row">
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h5>Total Users</h5>
+                <h2><?php echo $userStats['total_users']; ?></h2>
+                <div class="stat-details">
+                    <span class="text-success"><?php echo $userStats['admin_count']; ?> Admin</span>
+                    <span class="text-primary"><?php echo $userStats['customer_count']; ?> Customers</span>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-icon">
+                    <i class="fas fa-film"></i>
+                </div>
+                <h5>Total Movies</h5>
+                <h2><?php echo $movieStats['total_movies']; ?></h2>
+                <div class="stat-details">
+                    <span class="text-success"><?php echo $movieStats['now_showing']; ?> Now Showing</span>
+                    <span class="text-warning"><?php echo $movieStats['coming_soon']; ?> Coming Soon</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-icon">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <h5>Total Bookings</h5>
+                <h2>128</h2>
+                <div class="stat-details">
+                    <span class="text-success">120 Confirmed</span>
+                    <span class="text-danger">8 Pending</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="stat-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <h5>Revenue</h5>
+                <h2>$12,540</h2>
+                <div class="stat-details">
+                    <span class="text-success">This Month</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Bookings</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Customer</th>
+                                <th>Movie</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            // Example booking data - you should implement getRecentBookings() in Database class
+                            // $recentBookings = $db->getRecentBookings(5);
+                            // foreach($recentBookings as $booking):
+                            ?>
+                            <tr>
+                                <td>#BK001</td>
+                                <td>John Doe</td>
+                                <td>Avengers</td>
+                                <td>2024-01-10</td>
+                                <td>$45.00</td>
+                                <td><span class="badge bg-success">Confirmed</span></td>
+                            </tr>
+                            <?php // endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Activities</h5>
+            </div>
+            <div class="card-body">
+                <ul class="activity-list">
+                    <?php foreach($recentActivities as $activity): ?>
+                    <li>
+                        <div class="activity-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h6><?php echo htmlspecialchars($activity['title']); ?></h6>
+                            <p><?php echo date('h:i A', strtotime($activity['date'])); ?></p>
+                        </div>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require_once 'footer.php'; ?>
