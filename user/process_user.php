@@ -2,58 +2,65 @@
 session_start();
 require_once 'db_connection.php';
 
-if (!isset($_SESSION['user_id']) || $_SESSION['is_admin'] != 1) {
+// Check if user is logged in and is admin
+if (
+    !isset($_SESSION['user_id']) ||
+    !isset($_SESSION['is_admin']) ||
+    $_SESSION['is_admin'] != 1
+) {
     header('Location: login.php');
     exit();
 }
 
-$database = new Database();
-$db = $database->getConnection();
+// Add User
+if (isset($_POST['add_user'])) {
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $full_name = $_POST['full_name'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $is_admin = isset($_POST['is_admin']) ? 1 : 0;
+    $is_active = 1; // New users are active by default
 
-$action = $_POST['action'] ?? '';
-$id = $_POST['id'] ?? 0;
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($action === 'add') {
-        $data = [
-            'username' => $_POST['username'],
-            'email' => $_POST['email'],
-            'password' => $_POST['password'],
-            'full_name' => $_POST['full_name'],
-            'phone' => $_POST['phone'],
-            'is_admin' => isset($_POST['is_admin']) ? 1 : 0
-        ];
-        
-        if ($database->addUser($data)) {
-            header('Location: admin.php?success=User added successfully');
-        } else {
-            header('Location: admin.php?error=Failed to add user');
-        }
+    // Check if username or email already exists
+    $existing_user = $database->getUserByUsernameOrEmail($username, $email);
+    if ($existing_user) {
+        header('Location: admin_users.php?error=Username or email already exists');
         exit();
     }
-    elseif ($action === 'edit') {
-        $data = [
-            'username' => $_POST['username'],
-            'email' => $_POST['email'],
-            'full_name' => $_POST['full_name'],
-            'phone' => $_POST['phone'],
-            'is_admin' => isset($_POST['is_admin']) ? 1 : 0,
-            'is_active' => isset($_POST['is_active']) ? 1 : 0
-        ];
-        
-        if ($database->updateUser($id, $data)) {
-            header('Location: admin.php?success=User updated successfully');
-        } else {
-            header('Location: admin.php?error=Failed to update user');
-        }
+
+    if ($database->addUser($username, $email, $password, $full_name, $phone, $is_admin, $is_active)) {
+        header('Location: admin_users.php?success=User added successfully');
+        exit();
+    } else {
+        header('Location: admin_users.php?error=Failed to add user');
         exit();
     }
-    elseif ($action === 'delete') {
-        if ($database->deleteUser($id)) {
-            header('Location: admin.php?success=User deleted successfully');
-        } else {
-            header('Location: admin.php?error=Failed to delete user');
-        }
+}
+
+// Edit User
+if (isset($_POST['edit_user'])) {
+    $user_id = $_POST['user_id'];
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = !empty($_POST['password']) ? password_hash($_POST['password'], PASSWORD_DEFAULT) : null;
+    $full_name = $_POST['full_name'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $is_admin = isset($_POST['is_admin']) ? 1 : 0;
+    $is_active = isset($_POST['is_active']) ? 1 : 0;
+
+    // Check if username or email already exists (excluding current user)
+    $existing_user = $database->getUserByUsernameOrEmail($username, $email);
+    if ($existing_user && $existing_user['id'] != $user_id) {
+        header('Location: admin_users.php?error=Username or email already exists');
+        exit();
+    }
+
+    if ($database->updateUser($user_id, $username, $email, $password, $full_name, $phone, $is_admin, $is_active)) {
+        header('Location: admin_users.php?success=User updated successfully');
+        exit();
+    } else {
+        header('Location: admin_users.php?error=Failed to update user');
         exit();
     }
 }

@@ -31,6 +31,13 @@ class Database {
         return $this->conn;
     }
 
+    
+
+
+    
+
+    
+
     // ========== SLIDER IMAGES ==========
     public function getSliderImages() {
         $query = "SELECT * FROM slider_images WHERE is_active = 1 ORDER BY display_order ASC";
@@ -38,6 +45,8 @@ class Database {
         $stmt->execute();
         return $stmt->fetchAll();
     }
+
+    
 
     // ========== LANGUAGES ==========
     public function getLanguages() {
@@ -246,6 +255,35 @@ class Database {
         return $stmt->execute([':id' => $userId]);
     }
 
+    public function addUser(
+    $username,
+    $email,
+    $password,
+    $full_name,
+    $phone,
+    $is_admin,
+    $is_active
+) {
+    $sql = "INSERT INTO users
+        (username, email, password_hash, full_name, phone, is_admin, is_active)
+        VALUES
+        (:username, :email, :password, :full_name, :phone, :is_admin, :is_active)";
+
+
+    $stmt = $this->conn->prepare($sql);
+
+    $stmt->bindParam(':username', $username);
+    $stmt->bindParam(':email', $email);
+    $stmt->bindParam(':password', $password);
+    $stmt->bindParam(':full_name', $full_name);
+    $stmt->bindParam(':phone', $phone);
+    $stmt->bindParam(':is_admin', $is_admin, PDO::PARAM_INT);
+    $stmt->bindParam(':is_active', $is_active, PDO::PARAM_INT);
+
+    return $stmt->execute();
+}
+
+
     // ========== REMOVE ADMIN PRIVILEGES ==========
     public function removeUserAdmin($userId) {
         $query = "UPDATE users SET is_admin = 0 WHERE id = :id";
@@ -263,6 +301,62 @@ class Database {
         ]);
     }
 
+
+      public function updateUser(
+    $user_id,
+    $username,
+    $email,
+    $password,
+    $full_name,
+    $phone,
+    $is_admin,
+    $is_active
+) {
+    if ($password) {
+        // Update WITH password
+        $sql = "UPDATE users SET
+            username = :username,
+            email = :email,
+            password_hash = :password,
+            full_name = :full_name,
+            phone = :phone,
+            is_admin = :is_admin,
+            is_active = :is_active
+        WHERE id = :id";
+
+    } else {
+        // Update WITHOUT password
+        $sql = "UPDATE users SET
+            username = :username,
+            email = :email,
+            password_hash = :password,
+            full_name = :full_name,
+            phone = :phone,
+            is_admin = :is_admin,
+            is_active = :is_active
+        WHERE id = :id";
+
+    }
+
+    $stmt = $this->conn->prepare($sql);
+
+    $stmt->bindParam(':username', $username);
+    $stmt->bindParam(':email', $email);
+    $stmt->bindParam(':full_name', $full_name);
+    $stmt->bindParam(':phone', $phone);
+    $stmt->bindParam(':is_admin', $is_admin, PDO::PARAM_INT);
+    $stmt->bindParam(':is_active', $is_active, PDO::PARAM_INT);
+    $stmt->bindParam(':id', $user_id, PDO::PARAM_INT);
+
+    if ($password) {
+        $stmt->bindParam(':password', $password);
+    }
+
+    return $stmt->execute();
+}
+
+
+
     // ========== GET USER BY ID ==========
     public function getUserById($id) {
         $query = "SELECT * FROM users WHERE id = :id";
@@ -270,6 +364,21 @@ class Database {
         $stmt->execute([':id' => $id]);
         return $stmt->fetch();
     }
+
+    public function getUserByUsernameOrEmail($username, $email)
+{
+    $sql = "SELECT * FROM users 
+            WHERE username = :username OR email = :email 
+            LIMIT 1";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindParam(':username', $username);
+    $stmt->bindParam(':email', $email);
+    $stmt->execute();
+
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
 
     // ========== UPDATE USER PROFILE ==========
     public function updateUserProfile($id, $data) {
@@ -346,33 +455,74 @@ class Database {
     }
 
     // ========== ADD MOVIE ==========
-    public function addMovie($data) {
-        $query = "INSERT INTO movies (title, description, language_id, genre_id, rating, duration, poster_url, release_date, is_now_showing, ticket_price, is_featured) 
-                  VALUES (:title, :description, :language_id, :genre_id, :rating, :duration, :poster_url, :release_date, :is_now_showing, :ticket_price, :is_featured)";
-        $stmt = $this->conn->prepare($query);
-        return $stmt->execute($data);
-    }
+    public function addMovie(
+    $title, $language_id, $genre_id, $rating, $duration,
+    $ticket_price, $release_date, $poster_url, $description,
+    $is_now_showing, $is_featured
+) {
+    $sql = "INSERT INTO movies 
+            (title, language_id, genre_id, rating, duration, ticket_price,
+             release_date, poster_url, description, is_now_showing, is_featured)
+            VALUES
+            (:title, :language_id, :genre_id, :rating, :duration, :ticket_price,
+             :release_date, :poster_url, :description, :is_now_showing, :is_featured)";
+
+    $stmt = $this->conn->prepare($sql);
+
+    $stmt->bindParam(':title', $title);
+    $stmt->bindParam(':language_id', $language_id);
+    $stmt->bindParam(':genre_id', $genre_id);
+    $stmt->bindParam(':rating', $rating);
+    $stmt->bindParam(':duration', $duration);
+    $stmt->bindParam(':ticket_price', $ticket_price);
+    $stmt->bindParam(':release_date', $release_date);
+    $stmt->bindParam(':poster_url', $poster_url);
+    $stmt->bindParam(':description', $description);
+    $stmt->bindParam(':is_now_showing', $is_now_showing, PDO::PARAM_INT);
+    $stmt->bindParam(':is_featured', $is_featured, PDO::PARAM_INT);
+
+    return $stmt->execute();   // ✅ NO arguments
+}
+
 
     // ========== UPDATE MOVIE ==========
-    public function updateMovie($id, $data) {
-        $query = "UPDATE movies SET 
-                  title = :title,
-                  description = :description,
-                  language_id = :language_id,
-                  genre_id = :genre_id,
-                  rating = :rating,
-                  duration = :duration,
-                  poster_url = :poster_url,
-                  release_date = :release_date,
-                  is_now_showing = :is_now_showing,
-                  ticket_price = :ticket_price,
-                  is_featured = :is_featured
-                  WHERE id = :id";
-        
-        $data[':id'] = $id;
-        $stmt = $this->conn->prepare($query);
-        return $stmt->execute($data);
-    }
+    public function updateMovie(
+    $movie_id, $title, $language_id, $genre_id, $rating,
+    $duration, $ticket_price, $release_date, $poster_url,
+    $description, $is_now_showing, $is_featured
+) {
+    $sql = "UPDATE movies SET
+                title = :title,
+                language_id = :language_id,
+                genre_id = :genre_id,
+                rating = :rating,
+                duration = :duration,
+                ticket_price = :ticket_price,
+                release_date = :release_date,
+                poster_url = :poster_url,
+                description = :description,
+                is_now_showing = :is_now_showing,
+                is_featured = :is_featured
+            WHERE id = :movie_id";
+
+    $stmt = $this->conn->prepare($sql);
+
+    $stmt->bindParam(':title', $title);
+    $stmt->bindParam(':language_id', $language_id);
+    $stmt->bindParam(':genre_id', $genre_id);
+    $stmt->bindParam(':rating', $rating);
+    $stmt->bindParam(':duration', $duration);
+    $stmt->bindParam(':ticket_price', $ticket_price);
+    $stmt->bindParam(':release_date', $release_date);
+    $stmt->bindParam(':poster_url', $poster_url);
+    $stmt->bindParam(':description', $description);
+    $stmt->bindParam(':is_now_showing', $is_now_showing, PDO::PARAM_INT);
+    $stmt->bindParam(':is_featured', $is_featured, PDO::PARAM_INT);
+    $stmt->bindParam(':movie_id', $movie_id, PDO::PARAM_INT);
+
+    return $stmt->execute();   // ✅ returns true/false
+}
+
 
     // ========== DELETE MOVIE ==========
     public function deleteMovie($id) {
@@ -398,28 +548,64 @@ class Database {
     }
 
     // ========== UPDATE SLIDER IMAGE ==========
-    public function updateSliderImage($id, $data) {
-        $query = "UPDATE slider_images SET 
-                  title = :title,
-                  description = :description,
-                  image_url = :image_url,
-                  button_text = :button_text,
-                  button_action = :button_action,
-                  display_order = :display_order,
-                  is_active = :is_active
-                  WHERE id = :id";
-        
-        $data[':id'] = $id;
-        $stmt = $this->conn->prepare($query);
-        return $stmt->execute($data);
+ 
+
+public function updateSliderStatus($id, $is_active)
+{
+    // Ensure database connection
+    if (!$this->conn) {
+        $this->getConnection();
     }
 
-    // ========== DELETE SLIDER IMAGE ==========
-    public function deleteSliderImage($id) {
-        $query = "DELETE FROM slider_images WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
-        return $stmt->execute([':id' => $id]);
+    $sql = "UPDATE slider_images
+            SET is_active = :is_active,
+                updated_at = NOW()
+            WHERE id = :id";
+
+    $stmt = $this->conn->prepare($sql);
+
+    return $stmt->execute([
+        ':id'        => $id,
+        ':is_active' => $is_active
+    ]);
+}
+
+
+
+public function addSlider($title, $description, $image_url, $display_order = 1, $is_active = 1)
+{
+    // Ensure database connection
+    if (!$this->conn) {
+        $this->getConnection();
     }
+
+    $sql = "INSERT INTO slider_images 
+            (title, description, image_url, display_order, is_active, created_at, updated_at)
+            VALUES 
+            (:title, :description, :image_url, :display_order, :is_active, NOW(), NOW())";
+
+    $stmt = $this->conn->prepare($sql);
+
+    return $stmt->execute([
+        ':title'         => $title,
+        ':description'   => $description,
+        ':image_url'     => $image_url,
+        ':display_order' => (int)$display_order,
+        ':is_active'     => $is_active
+    ]);
+}
+
+
+
+
+
+
+    // ========== DELETE SLIDER IMAGE ==========
+    public function deleteSlider($id) {
+    $stmt = $this->conn->prepare("DELETE FROM slider_images WHERE id = ?");
+    return $stmt->execute([$id]);
+}
+
 
     // ========== UPDATE CONTACT INFO ==========
     public function updateContactInfo($key, $value) {
@@ -457,6 +643,64 @@ class Database {
         $stmt->execute();
         return $stmt->fetchAll();
     }
+
+    public function getBookingById($booking_id)
+{
+    $sql = "SELECT 
+                b.id,
+                b.ticket_number,
+                b.booking_date,
+                b.booking_status,
+                b.total_amount,
+                b.total_seats,
+                b.seat_numbers,
+                b.special_notes,
+
+                u.full_name AS customer_name,
+                u.email AS customer_email,
+
+                m.title AS movie_title,
+                t.name AS theatre_name,
+
+                s.show_date,
+                s.show_time,
+
+                p.payment_status,
+                p.payment_method
+            FROM bookings b
+            JOIN users u ON b.user_id = u.id
+            JOIN shows s ON b.show_id = s.id
+            JOIN movies m ON s.movie_id = m.id
+            JOIN theatres t ON s.theatre_id = t.id
+            LEFT JOIN payments p ON b.id = p.booking_id
+            WHERE b.id = :id
+            LIMIT 1";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindParam(':id', $booking_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+public function deleteBooking($booking_id)
+{
+    $sql = "DELETE FROM bookings WHERE id = :id";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindParam(':id', $booking_id, PDO::PARAM_INT);
+    return $stmt->execute();
+}
+
+public function getDistinctCities()
+{
+    $sql = "SELECT DISTINCT city FROM theatres WHERE city IS NOT NULL AND city != ''";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+
+
 
     // Get booking statistics
 public function getBookingStatistics() {
@@ -511,27 +755,105 @@ public function getAllTheatres() {
 }
 
 // Add theatre
-public function addTheatre($data) {
-    $query = "INSERT INTO theatres (name, location, city, total_screens, facilities) 
-              VALUES (:name, :location, :city, :total_screens, :facilities)";
-    $stmt = $this->conn->prepare($query);
-    return $stmt->execute($data);
+public function addTheatre($name, $city, $location, $phone, $total_screens, $facilities)
+{
+    // Ensure DB connection exists
+    if (!$this->conn) {
+        $this->getConnection();
+    }
+
+    $sql = "INSERT INTO theatres 
+            (name, city, location, phone, total_screens, facilities)
+            VALUES 
+            (:name, :city, :location, :phone, :total_screens, :facilities)";
+
+    $stmt = $this->conn->prepare($sql);
+
+    return $stmt->execute([
+        ':name'          => $name,
+        ':city'          => $city,
+        ':location'      => $location,
+        ':phone'         => $phone,
+        ':total_screens' => (int)$total_screens,
+        ':facilities'    => $facilities
+    ]);
 }
 
-// Update theatre
-public function updateTheatre($id, $data) {
-    $query = "UPDATE theatres SET 
-              name = :name,
-              location = :location,
-              city = :city,
-              total_screens = :total_screens,
-              facilities = :facilities
-              WHERE id = :id";
-    
-    $data[':id'] = $id;
-    $stmt = $this->conn->prepare($query);
-    return $stmt->execute($data);
+public function editTheatre($id, $name, $city, $location, $phone, $total_screens, $facilities)
+{
+    // Ensure DB connection exists
+    if (!$this->conn) {
+        $this->getConnection();
+    }
+
+    $sql = "UPDATE theatres
+            SET name = :name,
+                city = :city,
+                location = :location,
+                phone = :phone,
+                total_screens = :total_screens,
+                facilities = :facilities
+            WHERE id = :id";
+
+    $stmt = $this->conn->prepare($sql);
+
+    return $stmt->execute([
+        ':id'            => $id,
+        ':name'          => $name,
+        ':city'          => $city,
+        ':location'      => $location,
+        ':phone'         => $phone,
+        ':total_screens' => (int)$total_screens,
+        ':facilities'    => $facilities
+    ]);
 }
+
+
+// Update theatre
+public function updateTheatre($id, $name, $city, $location, $phone, $total_screens, $facilities)
+{
+    if (!$this->conn) {
+        $this->getConnection();
+    }
+
+    // Validate ID
+    if (empty($id)) {
+        throw new Exception("Theatre ID cannot be empty");
+    }
+
+    $sql = "UPDATE theatres
+            SET name = :name,
+                city = :city,
+                location = :location,
+                phone = :phone,
+                total_screens = :total_screens,
+                facilities = :facilities
+            WHERE id = :id";
+
+    $stmt = $this->conn->prepare($sql);
+
+    return $stmt->execute([
+        ':id'            => $id,
+        ':name'          => $name,
+        ':city'          => $city,
+        ':location'      => $location,
+        ':phone'         => $phone,
+        ':total_screens' => (int)$total_screens,
+        ':facilities'    => $facilities
+    ]);
+}
+
+public function getTheatreById($id)
+{
+    if (!$this->conn) $this->getConnection();
+
+    $sql = "SELECT * FROM theatres WHERE id = :id LIMIT 1";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->execute([':id' => $id]);
+    return $stmt->fetch(); // returns an associative array
+}
+
+
 
 // Delete theatre
 public function deleteTheatre($id) {
