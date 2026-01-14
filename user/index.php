@@ -455,7 +455,7 @@ unset($_SESSION['notification_success'], $_SESSION['notification_error']);
                                         <span><i class="far fa-clock me-1"></i><?php echo htmlspecialchars($movie['duration']); ?></span>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center mt-3">
-                                        <span class="text-gold fw-bold">$<?php echo $movie['ticket_price']; ?></span>
+                                        <!-- <span class="text-gold fw-bold">$<?php echo $movie['ticket_price']; ?></span> -->
                                         <button class="btn btn-book" data-id="<?php echo $movie['id']; ?>">
                                             <i class="fas fa-ticket-alt me-2"></i>Book Now
                                         </button>

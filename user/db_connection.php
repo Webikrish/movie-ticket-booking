@@ -31,13 +31,577 @@ class Database {
         return $this->conn;
     }
 
-    
+
+    public function addShow(
+    $movie_id,
+    $theatre_id,
+    $screen_number,
+    $show_date,
+    $show_time,
+    $available_seats,
+    $total_seats,
+    $ticket_price,
+    $is_active
+) {
+    $conn = $this->getConnection();
+
+    $sql = "
+        INSERT INTO shows
+        (movie_id, theatre_id, screen_number, show_date, show_time, available_seats, total_seats, ticket_price, is_active)
+        VALUES
+        (:movie_id, :theatre_id, :screen_number, :show_date, :show_time, :available_seats, :total_seats, :ticket_price, :is_active)
+    ";
+
+    $stmt = $conn->prepare($sql);
+    return $stmt->execute([
+        ':movie_id' => $movie_id,
+        ':theatre_id' => $theatre_id,
+        ':screen_number' => $screen_number,
+        ':show_date' => $show_date,
+        ':show_time' => $show_time,
+        ':available_seats' => $available_seats,
+        ':total_seats' => $total_seats,
+        ':ticket_price' => $ticket_price,
+        ':is_active' => $is_active
+    ]);
+}
+
+
 
 
     
 
-    
 
+    public function getShowById($id)
+{
+    $conn = $this->getConnection();
+
+    $sql = "
+        SELECT 
+            s.*,
+            m.title AS movie_title,
+            t.name AS theatre_name
+        FROM shows s
+        JOIN movies m ON s.movie_id = m.id
+        JOIN theatres t ON s.theatre_id = t.id
+        WHERE s.id = :id
+    ";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->execute([':id' => $id]);
+    return $stmt->fetch();
+}
+public function updateShow(
+    $show_id,
+    $movie_id,
+    $theatre_id,
+    $screen_number,
+    $show_date,
+    $show_time,
+    $available_seats,
+    $total_seats,
+    $ticket_price,
+    $is_active
+) {
+    $conn = $this->getConnection();
+
+    $sql = "
+        UPDATE shows SET
+            movie_id = :movie_id,
+            theatre_id = :theatre_id,
+            screen_number = :screen_number,
+            show_date = :show_date,
+            show_time = :show_time,
+            available_seats = :available_seats,
+            total_seats = :total_seats,
+            ticket_price = :ticket_price,
+            is_active = :is_active
+        WHERE id = :id
+    ";
+
+    $stmt = $conn->prepare($sql);
+    return $stmt->execute([
+        ':id' => $show_id,
+        ':movie_id' => $movie_id,
+        ':theatre_id' => $theatre_id,
+        ':screen_number' => $screen_number,
+        ':show_date' => $show_date,
+        ':show_time' => $show_time,
+        ':available_seats' => $available_seats,
+        ':total_seats' => $total_seats,
+        ':ticket_price' => $ticket_price,
+        ':is_active' => $is_active
+    ]);
+}
+public function deleteShow($show_id)
+{
+    $conn = $this->getConnection();
+
+    $stmt = $conn->prepare("DELETE FROM shows WHERE id = :id");
+    return $stmt->execute([':id' => $show_id]);
+}
+
+
+
+
+
+// ========== REPORT FUNCTIONS ==========
+public function getSystemStatistics() {
+    try {
+        $stats = [];
+        
+        // Total users
+        $query = "SELECT COUNT(*) as total FROM users WHERE is_active = 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['total_users'] = $stmt->fetch()['total'] ?? 0;
+        
+        // New users this month
+        $query = "SELECT COUNT(*) as total FROM users 
+                  WHERE MONTH(created_at) = MONTH(CURRENT_DATE()) 
+                  AND YEAR(created_at) = YEAR(CURRENT_DATE())
+                  AND is_active = 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['new_users'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Active movies (now showing)
+        $query = "SELECT COUNT(*) as total FROM movies WHERE is_now_showing = 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['active_movies'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Total movies
+        $query = "SELECT COUNT(*) as total FROM movies";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['total_movies'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Today's bookings
+        $query = "SELECT COUNT(*) as total FROM bookings WHERE DATE(booking_date) = CURDATE()";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['today_bookings'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Total bookings
+        $query = "SELECT COUNT(*) as total FROM bookings";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['total_bookings'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Total revenue (only confirmed bookings)
+        $query = "SELECT COALESCE(SUM(total_amount), 0) as total FROM bookings WHERE booking_status = 'confirmed'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['total_revenue'] = $stmt->fetch()['total'] ?? 0;
+        
+        // Monthly revenue
+        $query = "SELECT COALESCE(SUM(total_amount), 0) as total FROM bookings 
+                  WHERE booking_status = 'confirmed'
+                  AND MONTH(booking_date) = MONTH(CURRENT_DATE()) 
+                  AND YEAR(booking_date) = YEAR(CURRENT_DATE())";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $stats['monthly_revenue'] = $stmt->fetch()['total'] ?? 0;
+        
+        return $stats;
+    } catch (Exception $e) {
+        error_log("getSystemStatistics error: " . $e->getMessage());
+        return [
+            'total_users' => 0,
+            'new_users' => 0,
+            'active_movies' => 0,
+            'total_movies' => 0,
+            'today_bookings' => 0,
+            'total_bookings' => 0,
+            'total_revenue' => 0,
+            'monthly_revenue' => 0
+        ];
+    }
+}
+
+public function getRevenueStatistics($start_date, $end_date) {
+    try {
+        $stats = [];
+        
+        // Total revenue in date range
+        $query = "SELECT 
+                    COALESCE(SUM(total_amount), 0) as total_revenue,
+                    COALESCE(AVG(total_amount), 0) as avg_daily,
+                    COALESCE(MAX(total_amount), 0) as max_daily,
+                    COALESCE(MIN(total_amount), 0) as min_daily
+                  FROM bookings 
+                  WHERE booking_status = 'confirmed'
+                  AND DATE(booking_date) BETWEEN :start_date AND :end_date";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            ':start_date' => $start_date,
+            ':end_date' => $end_date
+        ]);
+        $revenue_data = $stmt->fetch();
+        
+        $stats['total_revenue'] = $revenue_data['total_revenue'] ?? 0;
+        $stats['avg_daily'] = $revenue_data['avg_daily'] ?? 0;
+        $stats['max_daily'] = $revenue_data['max_daily'] ?? 0;
+        $stats['min_daily'] = $revenue_data['min_daily'] ?? 0;
+        
+        // Revenue by payment method
+        $query = "SELECT 
+                    COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash,
+                    COALESCE(SUM(CASE WHEN payment_method = 'credit_card' THEN total_amount ELSE 0 END), 0) as credit_card,
+                    COALESCE(SUM(CASE WHEN payment_method = 'debit_card' THEN total_amount ELSE 0 END), 0) as debit_card,
+                    COALESCE(SUM(CASE WHEN payment_method = 'paypal' THEN total_amount ELSE 0 END), 0) as paypal
+                  FROM bookings 
+                  WHERE booking_status = 'confirmed'
+                  AND DATE(booking_date) BETWEEN :start_date AND :end_date";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            ':start_date' => $start_date,
+            ':end_date' => $end_date
+        ]);
+        $payment_data = $stmt->fetch();
+        
+        $stats['payment_methods'] = [
+            'cash' => $payment_data['cash'] ?? 0,
+            'credit_card' => $payment_data['credit_card'] ?? 0,
+            'debit_card' => $payment_data['debit_card'] ?? 0,
+            'paypal' => $payment_data['paypal'] ?? 0
+        ];
+        
+        return $stats;
+    } catch (Exception $e) {
+        error_log("getRevenueStatistics error: " . $e->getMessage());
+        return [
+            'total_revenue' => 0,
+            'avg_daily' => 0,
+            'max_daily' => 0,
+            'min_daily' => 0,
+            'payment_methods' => [
+                'cash' => 0,
+                'credit_card' => 0,
+                'debit_card' => 0,
+                'paypal' => 0
+            ]
+        ];
+    }
+}
+
+public function getBookingStatisticsByDate($start_date, $end_date) {
+    try {
+        $stats = [];
+        
+        // Booking counts by status
+        $query = "SELECT 
+                    COALESCE(COUNT(*), 0) as total_bookings,
+                    COALESCE(SUM(CASE WHEN booking_status = 'confirmed' THEN 1 ELSE 0 END), 0) as confirmed_bookings,
+                    COALESCE(SUM(CASE WHEN booking_status = 'pending' THEN 1 ELSE 0 END), 0) as pending_bookings,
+                    COALESCE(SUM(CASE WHEN booking_status = 'cancelled' THEN 1 ELSE 0 END), 0) as cancelled_bookings,
+                    COALESCE(AVG(total_seats), 0) as avg_seats
+                  FROM bookings 
+                  WHERE DATE(booking_date) BETWEEN :start_date AND :end_date";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            ':start_date' => $start_date,
+            ':end_date' => $end_date
+        ]);
+        $booking_data = $stmt->fetch();
+        
+        $stats['total_bookings'] = $booking_data['total_bookings'] ?? 0;
+        $stats['confirmed_bookings'] = $booking_data['confirmed_bookings'] ?? 0;
+        $stats['pending_bookings'] = $booking_data['pending_bookings'] ?? 0;
+        $stats['cancelled_bookings'] = $booking_data['cancelled_bookings'] ?? 0;
+        $stats['avg_seats'] = $booking_data['avg_seats'] ?? 0;
+        
+        // Recent bookings (last 10)
+        $query = "SELECT b.*, 
+                         u.full_name as customer_name,
+                         m.title as movie_title,
+                         t.name as theatre_name
+                  FROM bookings b
+                  JOIN users u ON b.user_id = u.id
+                  JOIN movies m ON b.movie_id = m.id
+                  JOIN theatres t ON b.theatre_id = t.id
+                  WHERE DATE(b.booking_date) BETWEEN :start_date AND :end_date
+                  ORDER BY b.booking_date DESC
+                  LIMIT 10";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            ':start_date' => $start_date,
+            ':end_date' => $end_date
+        ]);
+        $stats['recent_bookings'] = $stmt->fetchAll();
+        
+        return $stats;
+    } catch (Exception $e) {
+        error_log("getBookingStatisticsByDate error: " . $e->getMessage());
+        return [
+            'total_bookings' => 0,
+            'confirmed_bookings' => 0,
+            'pending_bookings' => 0,
+            'cancelled_bookings' => 0,
+            'avg_seats' => 0,
+            'recent_bookings' => []
+        ];
+    }
+}
+
+public function getMovieStatisticsReport($start_date, $end_date) {
+    try {
+        $stats = [];
+        
+        // Movie counts
+        $query = "SELECT 
+                    COALESCE(COUNT(*), 0) as total_movies,
+                    COALESCE(SUM(CASE WHEN is_now_showing = 1 THEN 1 ELSE 0 END), 0) as now_showing,
+                    COALESCE(SUM(CASE WHEN is_now_showing = 0 THEN 1 ELSE 0 END), 0) as coming_soon,
+                    COALESCE(SUM(CASE WHEN is_featured = 1 THEN 1 ELSE 0 END), 0) as featured,
+                    COALESCE(AVG(rating), 0) as avg_rating
+                  FROM movies";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $movie_data = $stmt->fetch();
+        
+        $stats['total_movies'] = $movie_data['total_movies'] ?? 0;
+        $stats['now_showing'] = $movie_data['now_showing'] ?? 0;
+        $stats['coming_soon'] = $movie_data['coming_soon'] ?? 0;
+        $stats['featured'] = $movie_data['featured'] ?? 0;
+        $stats['avg_rating'] = $movie_data['avg_rating'] ?? 0;
+        
+        // Top movies by revenue
+        $query = "SELECT 
+                    m.id,
+                    m.title,
+                    COALESCE(m.rating, 0) as rating,
+                    m.is_featured,
+                    COALESCE(COUNT(b.id), 0) as bookings,
+                    COALESCE(SUM(b.total_amount), 0) as revenue,
+                    COALESCE(AVG(b.total_amount), 0) as avg_ticket
+                  FROM movies m
+                  LEFT JOIN bookings b ON m.id = b.movie_id
+                    AND b.booking_status = 'confirmed'
+                    AND DATE(b.booking_date) BETWEEN :start_date AND :end_date
+                  GROUP BY m.id
+                  ORDER BY revenue DESC
+                  LIMIT 5";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            ':start_date' => $start_date,
+            ':end_date' => $end_date
+        ]);
+        $stats['top_movies'] = $stmt->fetchAll();
+        
+        // All movies with performance
+        $query = "SELECT 
+                    m.*,
+                    l.name as language_name,
+                    g.name as genre_name,
+                    COALESCE(COUNT(b.id), 0) as bookings,
+                    COALESCE(SUM(b.total_amount), 0) as revenue
+                  FROM movies m
+                  LEFT JOIN languages l ON m.language_id = l.id
+                  LEFT JOIN genres g ON m.genre_id = g.id
+                  LEFT JOIN bookings b ON m.id = b.movie_id
+                    AND b.booking_status = 'confirmed'
+                    AND DATE(b.booking_date) BETWEEN :start_date AND :end_date
+                  GROUP BY m.id
+                  ORDER BY revenue DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            ':start_date' => $start_date,
+            ':end_date' => $end_date
+        ]);
+        $all_movies = $stmt->fetchAll();
+        
+        // Calculate occupancy percentage for each movie
+        foreach ($all_movies as &$movie) {
+            $movie['occupancy'] = 0;
+            if ($movie['bookings'] > 0) {
+                // Get total seats for this movie from shows
+                $seat_query = "SELECT COALESCE(SUM(total_seats), 0) as total_seats 
+                              FROM shows 
+                              WHERE movie_id = :movie_id
+                              AND show_date BETWEEN :start_date AND :end_date";
+                $seat_stmt = $this->conn->prepare($seat_query);
+                $seat_stmt->execute([
+                    ':movie_id' => $movie['id'],
+                    ':start_date' => $start_date,
+                    ':end_date' => $end_date
+                ]);
+                $seat_data = $seat_stmt->fetch();
+                $total_seats = $seat_data['total_seats'] ?? 1; // Avoid division by zero
+                
+                // Occupancy percentage (based on bookings vs total seats in shows)
+                $movie['occupancy'] = $total_seats > 0 ? ($movie['bookings'] / $total_seats) * 100 : 0;
+            }
+        }
+        
+        $stats['all_movies'] = $all_movies;
+        
+        return $stats;
+    } catch (Exception $e) {
+        error_log("getMovieStatisticsReport error: " . $e->getMessage());
+        return [
+            'total_movies' => 0,
+            'now_showing' => 0,
+            'coming_soon' => 0,
+            'featured' => 0,
+            'avg_rating' => 0,
+            'top_movies' => [],
+            'all_movies' => []
+        ];
+    }
+}
+
+public function getTheatreStatisticsReport($start_date, $end_date) {
+    try {
+        $query = "SELECT 
+                    t.id,
+                    t.name,
+                    t.city,
+                    t.location,
+                    COALESCE(COUNT(b.id), 0) as bookings,
+                    COALESCE(SUM(b.total_amount), 0) as revenue
+                  FROM theatres t
+                  LEFT JOIN bookings b ON t.id = b.theatre_id
+                    AND b.booking_status = 'confirmed'
+                    AND DATE(b.booking_date) BETWEEN :start_date AND :end_date
+                  GROUP BY t.id
+                  ORDER BY revenue DESC
+                  LIMIT 10";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            ':start_date' => $start_date,
+            ':end_date' => $end_date
+        ]);
+        
+        return [
+            'top_theatres' => $stmt->fetchAll()
+        ];
+    } catch (Exception $e) {
+        error_log("getTheatreStatisticsReport error: " . $e->getMessage());
+        return [
+            'top_theatres' => []
+        ];
+    }
+}
+
+public function getUserStatisticsReport($start_date, $end_date) {
+    try {
+        $query = "SELECT 
+                    COUNT(*) as total_users,
+                    SUM(CASE WHEN is_admin = 1 THEN 1 ELSE 0 END) as admin_count,
+                    SUM(CASE WHEN is_admin = 0 THEN 1 ELSE 0 END) as customer_count,
+                    SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users
+                  FROM users";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        
+        return $stmt->fetch() ?? [
+            'total_users' => 0,
+            'admin_count' => 0,
+            'customer_count' => 0,
+            'active_users' => 0
+        ];
+    } catch (Exception $e) {
+        error_log("getUserStatisticsReport error: " . $e->getMessage());
+        return [
+            'total_users' => 0,
+            'admin_count' => 0,
+            'customer_count' => 0,
+            'active_users' => 0
+        ];
+    }
+}
+
+public function getDailyRevenue($start_date, $end_date) {
+    try {
+        $query = "SELECT 
+                    DATE(booking_date) as date,
+                    COALESCE(COUNT(*), 0) as bookings,
+                    COALESCE(SUM(total_amount), 0) as revenue,
+                    COALESCE(AVG(total_amount), 0) as avg_booking
+                  FROM bookings 
+                  WHERE booking_status = 'confirmed'
+                    AND DATE(booking_date) BETWEEN :start_date AND :end_date
+                  GROUP BY DATE(booking_date)
+                  ORDER BY date";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([
+            ':start_date' => $start_date,
+            ':end_date' => $end_date
+        ]);
+        
+        $results = $stmt->fetchAll();
+        
+        // Calculate percentage change
+        $prev_revenue = 0;
+        foreach ($results as &$result) {
+            if ($prev_revenue > 0) {
+                $result['change'] = (($result['revenue'] - $prev_revenue) / $prev_revenue) * 100;
+            } else {
+                $result['change'] = 0;
+            }
+            $prev_revenue = $result['revenue'];
+        }
+        
+        // If no results, return empty array
+        return $results ?: [];
+    } catch (Exception $e) {
+        error_log("getDailyRevenue error: " . $e->getMessage());
+        return [];
+    }
+}
+
+// Get payment method distribution
+public function getPaymentMethodDistribution($start_date, $end_date) {
+    $query = "SELECT 
+                payment_method,
+                COUNT(*) as count,
+                SUM(total_amount) as amount
+              FROM bookings 
+              WHERE booking_status = 'confirmed'
+                AND DATE(booking_date) BETWEEN :start_date AND :end_date
+              GROUP BY payment_method";
+    
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute([
+        ':start_date' => $start_date,
+        ':end_date' => $end_date
+    ]);
+    
+    return $stmt->fetchAll();
+}
+
+// Get booking trend data
+public function getBookingTrendData($start_date, $end_date) {
+    $query = "SELECT 
+                DATE(booking_date) as date,
+                COUNT(*) as bookings,
+                SUM(total_seats) as seats
+              FROM bookings 
+              WHERE booking_status = 'confirmed'
+                AND DATE(booking_date) BETWEEN :start_date AND :end_date
+              GROUP BY DATE(booking_date)
+              ORDER BY date";
+    
+    $stmt = $this->conn->prepare($query);
+    $stmt->execute([
+        ':start_date' => $start_date,
+        ':end_date' => $end_date
+    ]);
+    
+    return $stmt->fetchAll();
+}
     // ========== SLIDER IMAGES ==========
     public function getSliderImages() {
         $query = "SELECT * FROM slider_images WHERE is_active = 1 ORDER BY display_order ASC";
@@ -911,21 +1475,7 @@ public function getAllBookingsWithDetails() {
 
 
 // Get revenue statistics by day for the last 7 days
-public function getRevenueStatistics() {
-    $query = "SELECT 
-                DATE(booking_date) as date,
-                COUNT(*) as bookings,
-                SUM(total_amount) as revenue
-              FROM bookings
-              WHERE booking_status = 'confirmed'
-                AND booking_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-              GROUP BY DATE(booking_date)
-              ORDER BY date DESC";
-    
-    $stmt = $this->conn->prepare($query);
-    $stmt->execute();
-    return $stmt->fetchAll();
-}
+
 
 // Get popular movies (most bookings)
 public function getPopularMovies($limit = 5) {
@@ -981,41 +1531,7 @@ public function searchBookings($searchTerm) {
 }
 
 // Get system statistics for dashboard
-public function getSystemStatistics() {
-    $stats = [];
-    
-    // Total users
-    $query = "SELECT COUNT(*) as total FROM users";
-    $stmt = $this->conn->prepare($query);
-    $stmt->execute();
-    $stats['total_users'] = $stmt->fetch()['total'];
-    
-    // Active movies
-    $query = "SELECT COUNT(*) as total FROM movies WHERE is_now_showing = 1";
-    $stmt = $this->conn->prepare($query);
-    $stmt->execute();
-    $stats['active_movies'] = $stmt->fetch()['total'];
-    
-    // Total theatres
-    $query = "SELECT COUNT(*) as total FROM theatres WHERE is_active = 1";
-    $stmt = $this->conn->prepare($query);
-    $stmt->execute();
-    $stats['total_theatres'] = $stmt->fetch()['total'];
-    
-    // Today's bookings
-    $query = "SELECT COUNT(*) as total FROM bookings WHERE DATE(booking_date) = CURDATE()";
-    $stmt = $this->conn->prepare($query);
-    $stmt->execute();
-    $stats['today_bookings'] = $stmt->fetch()['total'];
-    
-    // Today's revenue
-    $query = "SELECT SUM(total_amount) as total FROM bookings WHERE DATE(booking_date) = CURDATE() AND booking_status = 'confirmed'";
-    $stmt = $this->conn->prepare($query);
-    $stmt->execute();
-    $stats['today_revenue'] = $stmt->fetch()['total'] ?? 0;
-    
-    return $stats;
-}
+
 
 // Get all shows with details
 public function getShowsWithDetails() {

@@ -13,6 +13,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <a href="admin.php" class="nav-link <?php echo $current_page == 'admin.php' ? 'active' : ''; ?>">
             <i class="fas fa-tachometer-alt"></i> Dashboard
         </a>
+        <a href="index.php" class="nav-link <?php echo $current_page == 'admin.php' ? 'active' : ''; ?>">
+            <i class="fas fa-tachometer-alt"></i> Admin site
+        </a>
         <a href="admin_users.php" class="nav-link <?php echo $current_page == 'admin_users.php' ? 'active' : ''; ?>">
             <i class="fas fa-users"></i> Users
         </a>
@@ -31,9 +34,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <a href="admin_slider.php" class="nav-link <?php echo $current_page == 'admin_slider.php' ? 'active' : ''; ?>">
             <i class="fas fa-images"></i> Slider
         </a>
-        <a href="admin_contact.php" class="nav-link <?php echo $current_page == 'admin_contact.php' ? 'active' : ''; ?>">
+        <!-- <a href="admin_contact.php" class="nav-link <?php echo $current_page == 'admin_contact.php' ? 'active' : ''; ?>">
             <i class="fas fa-address-book"></i> Contact Info
-        </a>
+        </a> -->
         <a href="admin_reports.php" class="nav-link <?php echo $current_page == 'admin_reports.php' ? 'active' : ''; ?>">
             <i class="fas fa-chart-bar"></i> Reports
         </a>

@@ -15,7 +15,7 @@ if (
 // Get dashboard statistics
 $systemStats = $database->getSystemStatistics();
 $recent_activities = $database->getRecentActivities(10);
-$revenueStats = $database->getRevenueStatistics();
+// $revenueStats = $database->getRevenueStatistics();
 $popularMovies = $database->getPopularMovies(5);
 $theatres = $database->getAllTheatres();
 $shows = $database->getShowsWithDetails();
@@ -209,44 +209,8 @@ $bookingStats = $database->getBookingStatistics();
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="text-center py-4">
-            <h2 class="text-white mb-0"><i class="fas fa-film"></i> CinemaKrish</h2>
-            <small class="text-light">Admin Dashboard</small>
-        </div>
-        
-        <div class="nav flex-column">
-            <a href="admin.php" class="nav-link active">
-                <i class="fas fa-tachometer-alt"></i> Dashboard
-            </a>
-            <a href="admin_users.php" class="nav-link">
-                <i class="fas fa-users"></i> Users
-            </a>
-            <a href="admin_movies.php" class="nav-link">
-                <i class="fas fa-film"></i> Movies
-            </a>
-            <a href="admin_bookings.php" class="nav-link">
-                <i class="fas fa-ticket-alt"></i> Bookings
-            </a>
-            <a href="admin_theatres.php" class="nav-link">
-                <i class="fas fa-theater-masks"></i> Theatres
-            </a>
-            <a href="admin_shows.php" class="nav-link">
-                <i class="fas fa-calendar-alt"></i> Shows
-            </a>
-            <a href="admin_slider.php" class="nav-link">
-                <i class="fas fa-images"></i> Slider
-            </a>
-            <a href="admin_contact.php" class="nav-link">
-                <i class="fas fa-address-book"></i> Contact Info
-            </a>
-            <div class="mt-auto p-3">
-                <a href="logout.php" class="nav-link text-danger">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </div>
+                <?php include 'admin_sidebar.php'; ?>
+    
 
     <!-- Main Content -->
     <div class="main-content">
@@ -265,8 +229,8 @@ $bookingStats = $database->getBookingStatistics();
                                 <i class="fas fa-user-circle me-2"></i> <?php echo $_SESSION['username']; ?>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user me-2"></i>Profile</a></li>
-                                <li><a class="dropdown-item" href="settings.php"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><a class="dropdown-item" href="admin.php"><i class="fas fa-user me-2"></i>Profile</a></li>
+   
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                             </ul>
@@ -314,23 +278,71 @@ $bookingStats = $database->getBookingStatistics();
                     <p>Today's Bookings</p>
                 </div>
             </div>
-            <div class="col-md-3">
+            <!-- <div class="col-md-3">
                 <div class="stat-card">
                     <i class="fas fa-dollar-sign"></i>
                     <h2>$<?php echo number_format($systemStats['today_revenue'], 2); ?></h2>
                     <p>Today's Revenue</p>
                 </div>
-            </div>
+            </div> -->
         </div>
 
         <div class="row">
             <div class="col-md-8">
-                <div class="chart-container">
+                <!-- <div class="chart-container">
                     <h5>Revenue Trends (Last 7 Days)</h5>
                     <canvas id="revenueChart"></canvas>
+                </div> -->
+            </div>
+           
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5>Popular Movies (Most Bookings)</h5>
+                    <ul class="list-group">
+                        <?php foreach ($popularMovies as $movie): ?>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <?php echo htmlspecialchars($movie['title']); ?>
+                                <span class="badge bg-primary rounded-pill"><?php echo $movie['bookings_count']; ?> bookings</span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5>Quick Stats</h5>
+                    <div class="row">
+                        <!-- <div class="col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted">Total Theatres</small>
+                                <h4 class="mb-0"><?php echo $systemStats['total_theatres']; ?></h4>
+                            </div>
+                        </div> -->
+                        <div class="col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted">Total Screens</small>
+                                <h4 class="mb-0"><?php echo array_sum(array_column($theatres, 'total_screens')); ?></h4>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted">Total Shows</small>
+                                <h4 class="mb-0"><?php echo count($shows); ?></h4>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <small class="text-muted">Avg. Ticket Price</small>
+                                <h4 class="mb-0">$<?php echo number_format(array_sum(array_column($shows, 'ticket_price')) / count($shows), 2); ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <div class="row mt-6">
                 <div class="recent-activity">
                     <h5>Recent Activities</h5>
                     <?php foreach ($recent_activities as $activity): ?>
@@ -355,52 +367,6 @@ $bookingStats = $database->getBookingStatistics();
                 </div>
             </div>
         </div>
-
-        <div class="row mt-4">
-            <div class="col-md-6">
-                <div class="chart-container">
-                    <h5>Popular Movies (Most Bookings)</h5>
-                    <ul class="list-group">
-                        <?php foreach ($popularMovies as $movie): ?>
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <?php echo htmlspecialchars($movie['title']); ?>
-                                <span class="badge bg-primary rounded-pill"><?php echo $movie['bookings_count']; ?> bookings</span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="chart-container">
-                    <h5>Quick Stats</h5>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <div class="p-3 bg-light rounded">
-                                <small class="text-muted">Total Theatres</small>
-                                <h4 class="mb-0"><?php echo $systemStats['total_theatres']; ?></h4>
-                            </div>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <div class="p-3 bg-light rounded">
-                                <small class="text-muted">Total Screens</small>
-                                <h4 class="mb-0"><?php echo array_sum(array_column($theatres, 'total_screens')); ?></h4>
-                            </div>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <div class="p-3 bg-light rounded">
-                                <small class="text-muted">Total Shows</small>
-                                <h4 class="mb-0"><?php echo count($shows); ?></h4>
-                            </div>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <div class="p-3 bg-light rounded">
-                                <small class="text-muted">Avg. Ticket Price</small>
-                                <h4 class="mb-0">$<?php echo number_format(array_sum(array_column($shows, 'ticket_price')) / count($shows), 2); ?></h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
